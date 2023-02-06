@@ -1,0 +1,25 @@
+﻿@page "/products/{id:int}"
+@model AppStatic.Demo.Pages.ProductDetailsModel
+
+@{
+    ViewBag.Title = Model.Product.Name + " - Product Details";
+}
+
+<div>
+    <p>
+        This page demonstrate a details page from database.
+        Since this page uses <code>/products/{id}</code> path with <code>{id}</code> parameter,
+        <code>GenerateRazorPages</code> option cannot know which page to generate.
+    </p>
+
+    <p>
+        Therefore you need to specify custom resources with <code>CustomResources</code> option.
+        See <code>Program.cs</code> code for more details.
+    </p>
+
+    <h1>@(Model.Product.Name)</h1>
+
+    <article>
+        @(Model.Product.Details)
+    </article>
+</div>

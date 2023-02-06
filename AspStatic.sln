@@ -3,7 +3,25 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.4.33213.308
 MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AspStatic", "AspStatic\AspStatic.csproj", "{E14FFB23-3309-4120-BF52-7B4E184D5E94}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AppStatic.Demo", "AppStatic.Demo\AppStatic.Demo.csproj", "{88DF81B7-9B98-43FE-BE11-04407E9C9519}"
+EndProject
 Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E14FFB23-3309-4120-BF52-7B4E184D5E94}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E14FFB23-3309-4120-BF52-7B4E184D5E94}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E14FFB23-3309-4120-BF52-7B4E184D5E94}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E14FFB23-3309-4120-BF52-7B4E184D5E94}.Release|Any CPU.Build.0 = Release|Any CPU
+		{88DF81B7-9B98-43FE-BE11-04407E9C9519}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{88DF81B7-9B98-43FE-BE11-04407E9C9519}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{88DF81B7-9B98-43FE-BE11-04407E9C9519}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{88DF81B7-9B98-43FE-BE11-04407E9C9519}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection

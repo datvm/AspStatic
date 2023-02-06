@@ -1,0 +1,24 @@
+﻿@page
+
+@model Products
+
+@{
+    ViewBag.Title = "Products";
+}
+
+<p>
+    This page demonstrate the usage of DI while generating static pages.
+</p>
+
+<p>
+    However since the page itself does not need any parameter, it can be detected by <code>GenerateRazorPages</code> option.
+</p>
+
+<div class="list-group">
+    @foreach (var item in Model.ProductsList)
+    {
+        <a class="list-group-item" href="/products/@(item.Id)">
+            @(item.Name)
+        </a>
+    }
+</div>
