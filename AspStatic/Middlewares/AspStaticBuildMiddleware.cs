@@ -1,8 +1,4 @@
-﻿using AspStatic.Services;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
-using System.Net;
+﻿using System.Net;
 using System.Text;
 
 namespace AspStatic.Middlewares;

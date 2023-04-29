@@ -1,8 +1,8 @@
-﻿using Microsoft.AspNetCore.Hosting.Server;
+﻿using AspStatic.Services;
+using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
-using Microsoft.Extensions.DependencyInjection;
 
-namespace AspStatic.Services;
+namespace AspStatic;
 
 public class AspStaticOptions
 {
@@ -46,7 +46,7 @@ public class AspStaticOptions
 
         return this;
     }
-    
+
     static Uri DefaultBaseUri(IServiceProvider services)
     {
         const string Error =

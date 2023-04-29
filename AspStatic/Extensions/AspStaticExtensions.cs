@@ -1,4 +1,5 @@
-﻿using AspStatic.Middlewares;
+﻿using AspStatic;
+using AspStatic.Middlewares;
 using AspStatic.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;

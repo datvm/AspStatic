@@ -3,7 +3,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using System.IO.Compression;
 using System.Text;
-using static AspStatic.Services.AspStaticOptions;
+using static AspStatic.AspStaticOptions;
 
 namespace AspStatic.Services;
 
