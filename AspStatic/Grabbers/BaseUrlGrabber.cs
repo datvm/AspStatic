@@ -1,6 +1,8 @@
-﻿namespace AspStatic.Grabbers;
+﻿using Microsoft.AspNetCore.Http.Extensions;
 
-class UrlGrabberItem : IGrabberItem, IAsyncDisposable, IDisposable
+namespace AspStatic.Grabbers;
+
+sealed class UrlGrabberItem : IGrabberItem, IAsyncDisposable, IDisposable
 {
 
     public string Path => url.LocalPath;
@@ -60,13 +62,16 @@ public abstract class BaseUrlGrabber : IGrabber
 
     public virtual async IAsyncEnumerable<IGrabberItem> GrabAsync(HttpContext context)
     {
-        var urls = await GetUrls(context);
-
-        foreach (var url in urls)
+        var urls = GetUrls(context);
+        await foreach (var url in urls)
         {
-            yield return new UrlGrabberItem(url, RequireOk);
+            yield return new UrlGrabberItem(
+                url.IsAbsoluteUri ?
+                    url :
+                    new(new Uri(context.Request.GetEncodedUrl()), url),
+                RequireOk);
         }
     }
 
-    protected abstract Task<IEnumerable<Uri>> GetUrls(HttpContext context);
+    protected abstract IAsyncEnumerable<Uri> GetUrls(HttpContext context);
 }
