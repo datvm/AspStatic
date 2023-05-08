@@ -1,239 +1,75 @@
-﻿using Microsoft.AspNetCore.Routing;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
-using System.IO.Compression;
-using System.Text;
-using static AspStatic.AspStaticOptions;
-
-namespace AspStatic.Services;
+﻿namespace AspStatic.Services;
 
 public interface IAspStaticService
 {
-    Task BuildStaticAssets(IEnumerable<PageResource> resources, AspStaticOptions? o);
-    Task BuildStaticAssets(IEnumerable<PageResource> resources);
-    Task BuildStaticAssets(IEnumerable<PageResource> resources, AspStaticOptions? o, StringBuilder? report);
-    Task<IEnumerable<PageResource>> GetScanRequestAsync(AspStaticOptions? options);
-    Task<IEnumerable<PageResource>> GetScanRequestAsync();
+    Task BuildAsync();
 }
 
 class AspStaticService : IAspStaticService
 {
-    const string SelfPath = "aspstatic";
 
-    readonly IOptions<AspStaticOptions> o;
-    readonly IHostEnvironment env;
-    readonly EndpointDataSource epSrc;
-    readonly IServiceProvider services;
-    readonly IHttpClientFactory httpFac;
-
-    ZipArchive? currZipArchive;
-    public AspStaticService(IOptions<AspStaticOptions> o, IHostEnvironment env, EndpointDataSource epSrc, IServiceProvider services, IHttpClientFactory httpFac)
+    readonly IOptions<AspStaticOptions> options;
+    readonly HttpContext context;
+    public AspStaticService(IOptions<AspStaticOptions> options, IHttpContextAccessor context)
     {
-        this.o = o;
-        this.env = env;
-        this.epSrc = epSrc;
-        this.services = services;
-        this.httpFac = httpFac;
+        this.options = options;
+        this.context = context.HttpContext ??
+            throw new NullReferenceException();
     }
 
-    public Task<IEnumerable<PageResource>> GetScanRequestAsync()
-        => GetScanRequestAsync(null);
-
-    public async Task<IEnumerable<PageResource>> GetScanRequestAsync(AspStaticOptions? o)
+    public async Task BuildAsync()
     {
-        o ??= this.o.Value;
-        var host = o.BaseUriFunc(services);
-
-        var resources = new List<PageResource>();
-
-        if (o.GenerateRazorPages)
+        var o = options.Value;
+        if (o.Grabbers.Count == 0)
         {
-            resources.AddRange(GetPagesPaths(host, o.RazorPagesUrlHandling));
+            throw new InvalidOperationException($"There is no {nameof(o.Grabbers)}");
         }
 
-        if (o.CustomResources is not null)
+        if (o.Writers.Count == 0)
         {
-            var res = await o.CustomResources(services);
-            resources.AddRange(res
-                .Select(q => new PageResource(
-                    new Uri(host, q.Url).AbsoluteUri,
-                    q.FilePath)));
+            throw new InvalidOperationException($"There is no {nameof(o.Writers)}");
         }
 
-        if (o.CopyWwwroot)
+        foreach (var writer in o.Writers)
         {
-            resources.AddRange(GetWwwRootPaths(host));
+            await writer.InitializeAsync(context);
         }
 
-        return resources;
-    }
-
-    public async Task BuildStaticAssets(IEnumerable<PageResource> resources)
-        => await BuildStaticAssets(resources, null, null);
-
-    public async Task BuildStaticAssets(IEnumerable<PageResource> resources, AspStaticOptions? o)
-        => await BuildStaticAssets(resources, o, null);
-
-    public async Task BuildStaticAssets(IEnumerable<PageResource> resources, AspStaticOptions? o, StringBuilder? report)
-    {
-        o ??= this.o.Value;
-
-        if (o.ClearOutput)
+        foreach (var grabber in o.Grabbers)
         {
-            if (!o.ZipOutput && Directory.Exists(o.OutputPath))
+            await foreach (var item in grabber.GrabAsync(context))
             {
-                report?.AppendLine("Clearing output: " + o.OutputPath);
+                await using var htmlStream = await item.GetStreamAsync(context);
+                if (htmlStream is null) { continue; }
 
-                Directory.Delete(o.OutputPath, true);
-            }
-        }
+                var outputStreams = await Task.WhenAll(
+                    o.Writers
+                        .Select(q => q.GetOutputStreamAsync(item.Path)));
+                await using var writer = new MultiStreamWriter(outputStreams);
 
-        if (o.ZipOutput)
-        {
-            // Don't add using here
-            var file = File.Open(o.OutputPath, FileMode.Create);
-            currZipArchive = new ZipArchive(file, ZipArchiveMode.Create); ;
-        }
-
-        var http = httpFac.CreateClient();
-
-        foreach (var r in resources)
-        {
-            using var req = new HttpRequestMessage(HttpMethod.Get, r.Url);
-            using var res = await http.SendAsync(req);
-
-            report?.AppendLine($"{(int)res.StatusCode,3} - {r.Url}");
-
-            if (!res.IsSuccessStatusCode &&
-                !o.GenerateNonSuccessfulPages)
-            {
-                continue;
+                await htmlStream.CopyToAsync(writer);
             }
 
-            var content = await res.Content.ReadAsStringAsync();
-            await PrintOutputAsync(r.FilePath, content, o);
+            await DisposeIfAvailableAsync(grabber);
         }
 
-        currZipArchive?.Dispose();
-        currZipArchive = null;
-    }
-
-    async Task PrintOutputAsync(string path, string content, AspStaticOptions o)
-    {
-        if (path[0] == '/') { path = path[1..]; }
-
-        Stream outStream;
-        if (currZipArchive is null)
+        foreach (var writer in o.Writers)
         {
-            var outPath = Path.Combine(o.OutputPath, path);
-            var outFolder = Path.GetDirectoryName(outPath);
-            if (outFolder is not null)
-            {
-                Directory.CreateDirectory(outFolder);
-            }
-
-            outStream = File.OpenWrite(
-                Path.Combine(o.OutputPath, path));
-        }
-        else
-        {
-            var entry = currZipArchive.CreateEntry(path);
-            outStream = entry.Open();
-        }
-
-        using (outStream)
-        {
-            using var writer = new StreamWriter(outStream);
-            await writer.WriteAsync(content);
+            await DisposeIfAvailableAsync(writer);
         }
     }
 
-    IEnumerable<PageResource> GetWwwRootPaths(Uri? customHost)
+    static async Task DisposeIfAvailableAsync<T>(T obj)
     {
-        var wwwroot = new DirectoryInfo(Path.Combine(env.ContentRootPath, "wwwroot"));
-        if (!wwwroot.Exists)
+        switch (obj)
         {
-            yield break;
-        }
-
-        foreach (var file in GetFiles(wwwroot, "/"))
-        {
-            yield return file;
-        }
-
-        IEnumerable<PageResource> GetFiles(DirectoryInfo folder, string currPath)
-        {
-            var subFolders = folder.GetDirectories();
-            foreach (var subFolder in subFolders)
-            {
-                foreach (var file in
-                    GetFiles(subFolder, currPath + subFolder.Name + "/"))
-                {
-                    yield return file;
-                }
-            }
-
-            var files = folder.GetFiles();
-            foreach (var file in files)
-            {
-                var filePath = currPath + file.Name;
-
-                yield return new(
-                    GetUrl(customHost, filePath),
-                    filePath);
-            }
+            case IAsyncDisposable ad:
+                await ad.DisposeAsync();
+                break;
+            case IDisposable d:
+                d.Dispose();
+                break;
         }
     }
-
-    IEnumerable<PageResource> GetPagesPaths(Uri? customHost, GenerateRazorPagesUrlHandling urlHandling)
-    {
-        foreach (var ep in epSrc.Endpoints)
-        {
-            if (ep is not RouteEndpoint rEp) { continue; }
-
-            var raw = rEp.RoutePattern.RawText;
-            if (raw is null ||
-                raw.Contains('{') ||
-                raw.EndsWith("/index", StringComparison.OrdinalIgnoreCase) ||
-                raw.Equals("index", StringComparison.OrdinalIgnoreCase) ||
-                raw.Equals(SelfPath, StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
-            if (raw.Length == 0)
-            {
-                raw = "/index";
-            }
-
-            var path = raw.StartsWith('/') ? raw : '/' + raw;
-
-            var filePath = path;
-            if (filePath.EndsWith("/index", StringComparison.OrdinalIgnoreCase))
-            {
-                filePath += ".html";
-            }
-            else
-            {
-                filePath = path + urlHandling switch
-                {
-                    GenerateRazorPagesUrlHandling.AlwaysUseIndexHtml => "/index.html",
-                    GenerateRazorPagesUrlHandling.UseFileNameHtml => ".html",
-                    _ => throw new NotImplementedException(),
-                };
-            }
-
-            yield return new(
-                GetUrl(customHost, path),
-                filePath);
-        }
-    }
-
-    static string GetUrl(Uri? baseUri, string path)
-        => baseUri is null ?
-            path :
-            new Uri(baseUri, path).AbsoluteUri;
 
 }
-
-public record PageResource(string Url, string FilePath);

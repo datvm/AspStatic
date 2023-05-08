@@ -1,6 +1,4 @@
-﻿using Microsoft.AspNetCore.Http.Extensions;
-
-namespace AspStatic.Grabbers;
+﻿namespace AspStatic.Grabbers;
 
 sealed class UrlGrabberItem : IGrabberItem, IAsyncDisposable, IDisposable
 {
@@ -58,7 +56,7 @@ sealed class UrlGrabberItem : IGrabberItem, IAsyncDisposable, IDisposable
 public abstract class BaseUrlGrabber : IGrabber
 {
 
-    public bool RequireOk { get; protected set; } = true;
+    public bool RequireOk { get; init; } = true;
 
     public virtual async IAsyncEnumerable<IGrabberItem> GrabAsync(HttpContext context)
     {

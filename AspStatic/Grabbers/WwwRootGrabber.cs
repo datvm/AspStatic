@@ -14,11 +14,13 @@ public class WwwRootGrabber : BaseUrlGrabber
         var root = env.ContentRootPath;
         if (root is null) { yield break; }
 
-        var files = Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories);
+        var wwwRoot = Path.Combine(root, "wwwroot");
+
+        var files = Directory.EnumerateFiles(wwwRoot, "*", SearchOption.AllDirectories);
         foreach (var file in files)
         {
-            var path = file[(root.Length + 1)..];
-            yield return new(path);
+            var path = "/" + file[(wwwRoot.Length + 1)..].Replace('\\', '/');
+            yield return new(path, UriKind.RelativeOrAbsolute);
         }
     }
 }

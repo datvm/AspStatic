@@ -6,8 +6,8 @@ namespace AspStatic.Middlewares;
 class AspStaticBuildMiddleware
 {
     static readonly SemaphoreSlim semaphore = new(1, 1);
+    static bool hasBuilt = false;
 
-    bool hasBuilt = false;
     readonly RequestDelegate next;
     public AspStaticBuildMiddleware(RequestDelegate next)
     {
@@ -23,45 +23,37 @@ class AspStaticBuildMiddleware
 
             if (hasBuilt)
             {
+                semaphore.Release();
                 await next(context);
                 return;
             }
+
             hasBuilt = true;
+            semaphore.Release();
         }
-        finally
+        catch
         {
             semaphore.Release();
+            throw;
         }
 
         // Build it
-        string report;
         try
         {
-            report = await BuildAspStaticAsync(services);
+            var aspStaticService = services.GetRequiredService<IAspStaticService>();
+            await aspStaticService.BuildAsync();
         }
         catch (Exception)
         {
             hasBuilt = false;
             throw;
         }
-        
+
         // Response
         context.Response.Clear();
         context.Response.StatusCode = (int)HttpStatusCode.Created;
         await using var writer = new StreamWriter(context.Response.Body);
-        await writer.WriteAsync(report);
-    }
-
-    static async Task<string> BuildAspStaticAsync(IServiceProvider services)
-    {
-        var report = new StringBuilder();
-        var options = services.GetRequiredService<IOptions<AspStaticOptions>>().Value;
-
-        var aspStatic = services.GetRequiredService<IAspStaticService>();
-        var resources = await aspStatic.GetScanRequestAsync(options);
-        await aspStatic.BuildStaticAssets(resources, options, report);
-
-        return report.ToString();
+        await writer.WriteAsync("ASP Static built.");
     }
 
 }

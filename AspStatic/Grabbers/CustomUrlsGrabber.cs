@@ -2,20 +2,20 @@
 
 public class CustomUrlsGrabber : BaseUrlGrabber
 {
-    readonly IEnumerable<string> urls;
-    
-    public CustomUrlsGrabber(IEnumerable<string> urls)
+    readonly Func<HttpContext, Task<IEnumerable<string>>> urls;
+
+    public CustomUrlsGrabber(Func<HttpContext, Task<IEnumerable<string>>> urls)
     {
         this.urls = urls;
     }
 
     protected override async IAsyncEnumerable<Uri> GetUrls(HttpContext context)
     {
-        await Task.CompletedTask;
-     
+        var urls = await this.urls(context);
+
         foreach (var url in urls)
         {
-            yield return new(url);
+            yield return new(url, UriKind.RelativeOrAbsolute);
         }
     }
 

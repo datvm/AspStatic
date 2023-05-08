@@ -1,69 +1,91 @@
-﻿using AspStatic.Services;
-using Microsoft.AspNetCore.Hosting.Server;
-using Microsoft.AspNetCore.Hosting.Server.Features;
+﻿using Microsoft.Extensions.Hosting;
 
 namespace AspStatic;
 
 public class AspStaticOptions
 {
 
-    public string OutputPath { get; set; } = @"bin\aspstatic";
-    public bool ZipOutput { get; set; }
-    public bool ClearOutput { get; set; }
+    public List<IGrabber> Grabbers { get; } = new();
+    public List<IWriter> Writers { get; } = new();
 
-    public bool CopyWwwroot { get; set; } = true;
-
-    public bool GenerateRazorPages { get; set; } = true;
-    public GenerateRazorPagesUrlHandling RazorPagesUrlHandling { get; set; } = GenerateRazorPagesUrlHandling.AlwaysUseIndexHtml;
-
-    public bool GenerateNonSuccessfulPages { get; set; }
-
-    public Func<IServiceProvider, Uri> BaseUriFunc { get; set; } = DefaultBaseUri;
-
-    public Func<IServiceProvider, Task<IEnumerable<PageResource>>>? CustomResources { get; set; }
-
-    public AspStaticOptions OutputToZip(string path)
+    public AspStaticOptions()
     {
-        OutputPath = path;
-        ZipOutput = true;
+        GrabWwwRootFiles();
+        GrabRazorPages();
+    }
+
+    public AspStaticOptions GrabWwwRootFiles(bool requireSuccessfulResponse = true)
+    {
+        Grabbers.Add(new WwwRootGrabber()
+        {
+            RequireOk = requireSuccessfulResponse,
+        });
+        return this;
+    }
+
+    public AspStaticOptions GrabRazorPages(bool requireSuccessfulResponse = true)
+    {
+        Grabbers.Add(new RazorPagesGrabber()
+        {
+            RequireOk = requireSuccessfulResponse,
+        });
+        return this;
+    }
+
+    public AspStaticOptions GrabCustomUrls(IEnumerable<string> uris, bool requireSuccessfulResponse = true) =>
+        GrabCustomUrls(_ => Task.FromResult(uris), requireSuccessfulResponse);
+
+    public AspStaticOptions GrabCustomUrls(Func<HttpContext, Task<IEnumerable<string>>> uris, bool requireSuccessfulResponse = true)
+    {
+        Grabbers.Add(new CustomUrlsGrabber(uris)
+        {
+            RequireOk = requireSuccessfulResponse,
+        });
+        return this;
+    }
+
+    public AspStaticOptions WriteToFolder(string relativePathToContentRootPath, bool clearBeforeBuild)
+    {
+        Writers.Add(new FsWriter((ctx) =>
+        {
+            var env = ctx.RequestServices.GetRequiredService<IHostEnvironment>();
+            return Path.Combine(env.ContentRootPath, relativePathToContentRootPath);
+        }, clearBeforeBuild));
 
         return this;
     }
 
-    public AspStaticOptions DoNotUseDefaultRazorPages()
+    public AspStaticOptions WriteToFolder(Func<HttpContext, string> folderFunc, bool clearBeforeBuild)
     {
-        GenerateRazorPages = false;
-        return this;
-    }
-
-    public AspStaticOptions UseDefaultRazorPages()
-        => UseDefaultRazorPages(RazorPagesUrlHandling);
-
-    public AspStaticOptions UseDefaultRazorPages(GenerateRazorPagesUrlHandling urlHandling)
-    {
-        GenerateRazorPages = true;
-        RazorPagesUrlHandling = urlHandling;
+        Writers.Add(new FsWriter(folderFunc, clearBeforeBuild));
 
         return this;
     }
 
-    static Uri DefaultBaseUri(IServiceProvider services)
+    public AspStaticOptions WriteToAbsoluteFolder(string absoluteFolderPath, bool clearBeforeBuild) =>
+        WriteToFolder(_ => absoluteFolderPath, clearBeforeBuild);
+
+    public AspStaticOptions WriteToZip(string outputZipPath, bool relativeToContentRootPath = true) =>
+        WriteToZip(ctx =>
+        {
+            var path = outputZipPath;
+
+            if (relativeToContentRootPath)
+            {
+                var env = ctx.RequestServices.GetRequiredService<IHostEnvironment>();
+                path = Path.Combine(env.ContentRootPath, outputZipPath);
+            }
+
+            return File.Create(path);
+        });
+
+    public AspStaticOptions WriteToZip(Stream outputStream) =>
+        WriteToZip(_ => outputStream);
+
+    public AspStaticOptions WriteToZip(Func<HttpContext, Stream> outputStreamFunc)
     {
-        const string Error =
-            "Cannot get the Base Uri. IServer wasn't found in the DI. " +
-            "If you are not hosting on IIS or Kestrel, please set \"BaseUriFunc\" options.";
-
-        var server = services.GetService<IServer>();
-        var serverAddr = server?.Features.Get<IServerAddressesFeature>();
-        var address = serverAddr?.Addresses.FirstOrDefault();
-
-        return new Uri(address ?? throw new InvalidOperationException(Error));
-    }
-
-    public enum GenerateRazorPagesUrlHandling
-    {
-        AlwaysUseIndexHtml,
-        UseFileNameHtml,
+        Writers.Add(new ZipWriter(outputStreamFunc));
+        return this;
     }
 
 }

@@ -33,7 +33,7 @@ public class RazorPagesGrabber : BaseUrlGrabber
             }
 
             var path = raw.StartsWith('/') ? raw : '/' + raw;
-            yield return new(path);
+            yield return new(path, UriKind.RelativeOrAbsolute);
         }
     }
 }

@@ -1,11 +1,4 @@
-﻿using AspStatic;
-using AspStatic.Middlewares;
-using AspStatic.Services;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
-
-namespace Microsoft.Extensions.DependencyInjection
+﻿namespace Microsoft.Extensions.DependencyInjection
 {
     public static class AspStaticExtensions
     {
@@ -23,8 +16,6 @@ namespace Microsoft.Extensions.DependencyInjection
             return services
                 .AddScoped<IAspStaticService, AspStaticService>();
         }
-
-
 
     }
 }

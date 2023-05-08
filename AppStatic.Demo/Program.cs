@@ -1,5 +1,4 @@
 using AppStatic.Demo.Services;
-using AspStatic.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,29 +10,30 @@ builder.Services
     .AddScoped<IProductService, ProductService>();
 
 builder.Services
-    .AddAspStatic(config =>
+    .AddHttpContextAccessor()
+    .AddAspStatic(options =>
     {
-        config.GenerateNonSuccessfulPages = true;
-        config.ClearOutput = true;
+        options.WriteToFolder(@"bin\aspstatic", true);
+        options.WriteToZip(@"bin\aspstatic.zip");
 
-        config.CustomResources = async (services) =>
+        options.GrabCustomUrls(async (ctx) =>
         {
-            var result = new List<PageResource>
+            var services = ctx.RequestServices;
+
+            var result = new List<string>()
             {
-                new PageResource("/AppStatic.Demo.styles.css", "AppStatic.Demo.styles.css"),
+                "/AppStatic.Demo.styles.css",
             };
 
             // Get the product service to list all product pages
             var prodSrv = services.GetRequiredService<IProductService>();
             var prods = await prodSrv.GetAllAsync();
 
-            result.AddRange(prods.Select(p => new PageResource(
-                $"/products/{p.Id}",
-                $"products/{p.Id}.html"
-            )));
+            result.AddRange(prods
+                .Select(p => $"/products/{p.Id}"));
 
             return result;
-        };
+        });
     })
     .AddHttpClient();
 
