@@ -16,6 +16,10 @@ builder.Services
 
     .AddAspStatic(options =>
     {
+        // By default, AspStaticOptions already has two grabbers:
+        // options.GrabWwwRootFiles();
+        // options.GrabRazorPages();
+
         options.WriteToFolder(@"bin\aspstatic", true);
         options.WriteToZip(@"bin\aspstatic.zip");
 
