@@ -1,5 +1,7 @@
 ﻿@page
 
+@inject AspStatic.IUrlGathererService Urls;
+
 @{
     ViewBag.Title = "Home page";
 }
@@ -12,5 +14,27 @@
     <p>
         <a href="/products">Go to Products page</a>
     </p>
-</div>
 
+    <hr />
+
+    <p>This page also demonstrates all the URLs gathered by the <code>IUrlGathererService</code>. Reload the page after accessing more resources to see more.</p>
+    
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Url</th>
+                <th>Status Code</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Urls.GetGatheredUrls())
+            {
+                <tr>
+                    <td>@(item.Url)</td>
+                    <td>@(item.StatusCode is null ? "N/A" : (int)item.StatusCode)</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+</div>

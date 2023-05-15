@@ -11,6 +11,9 @@ builder.Services
 
 builder.Services
     .AddHttpContextAccessor()
+
+    .AddAspStaticUrlGatherer()
+
     .AddAspStatic(options =>
     {
         options.WriteToFolder(@"bin\aspstatic", true);
@@ -35,6 +38,7 @@ builder.Services
             return result;
         });
     })
+
     .AddHttpClient();
 
 var app = builder.Build();
@@ -61,6 +65,7 @@ app.UseHttpsRedirection();
 
 app.UseAspStatic();
 
+app.UseAspStaticUrlGatherer();
 app.UseStaticFiles();
 
 app.UseRouting();
