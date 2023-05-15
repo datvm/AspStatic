@@ -68,8 +68,8 @@ else
 app.UseHttpsRedirection();
 
 app.UseAspStatic();
-
 app.UseAspStaticUrlGatherer();
+
 app.UseStaticFiles();
 
 app.UseRouting();

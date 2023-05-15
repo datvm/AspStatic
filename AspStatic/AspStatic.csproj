@@ -1,22 +1,36 @@
 <Project Sdk="Microsoft.NET.Sdk.Razor">
 
-  <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
-    <Title>AspStatic</Title>
-    <Authors>Luke Vo</Authors>
-    <Description>Generate Static web pages from ASP.NET Core website with support for dynamic content.</Description>
-    <Copyright>Copyright 2023</Copyright>
-    <PackageProjectUrl>https://github.com/datvm/AspStatic.git</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/datvm/AspStatic.git</RepositoryUrl>
-    <PackageTags>asp.net core;asp.net;.net;static;html;generator</PackageTags>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>net7.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<AddRazorSupportForMvc>true</AddRazorSupportForMvc>
 
-  <ItemGroup>
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
-  </ItemGroup>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<Title>AspStatic</Title>
+		<Authors>Luke Vo</Authors>
+		<Description>Generate Static web pages from ASP.NET Core website with support for dynamic content.</Description>
+		<Copyright>Copyright 2023</Copyright>
+		<PackageProjectUrl>https://github.com/datvm/AspStatic.git</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/datvm/AspStatic.git</RepositoryUrl>
+		<PackageTags>asp.net core;asp.net;.net;static;html;generator</PackageTags>
+		<Version>1.1.0</Version>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<PackageReadmeFile>README.MD</PackageReadmeFile>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<FrameworkReference Include="Microsoft.AspNetCore.App" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Include="..\README.MD">
+	    <Pack>True</Pack>
+	    <PackagePath>\</PackagePath>
+	  </None>
+	</ItemGroup>
 
 
 
